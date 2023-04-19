@@ -179,7 +179,7 @@ impl Workbook<File>{
     ///     // non-xlsx file
     ///     let mut wb = Workbook::open("src/main.rs");
     ///     assert!(wb.is_err());
-    pub fn open(path: &str) -> Result<Workbook<File>, String> {
+    pub fn open(path: &str) -> Result<Self, String> {
         if !std::path::Path::new(&path).exists() {
             let err = format!("'{}' does not exist", &path);
             return Err(err);
@@ -205,6 +205,9 @@ impl Workbook<File>{
             Err(e) => Err(e.to_string())
         }
     }
+    /// Alternative name for `Workbook::open`.
+    pub fn new(path: &str) -> Result<Self, String> { Workbook::open(path) }
+
 }
 
 impl<RS: Read + Seek> Workbook<RS> {
@@ -332,7 +335,7 @@ impl<RS: Read + Seek> Workbook<RS> {
         }
     }
 
-    pub fn new(data: RS) -> Result<Self, String> {
+    pub fn from_rs(data: RS) -> Result<Self, String> {
         match zip::ZipArchive::new(data) {
             Ok(mut xls) => {
                 let strings = strings(&mut xls);
