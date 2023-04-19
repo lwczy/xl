@@ -33,9 +33,9 @@ mod ws;
 mod utils;
 
 use std::fmt;
-pub use wb::Workbook;
-pub use ws::{Worksheet, ExcelValue};
-pub use utils::{col2num, excel_number_to_date, num2col};
+pub use wb::*;
+pub use ws::*;
+pub use utils::*;
 
 enum SheetNameOrNum {
     Name(String),

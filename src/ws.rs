@@ -458,7 +458,6 @@ fn is_date(cell: &Cell) -> bool {
 mod tests {
     use crate::{ExcelValue, Workbook};
     use std::borrow::Cow;
-    use std::fs::File;
 
     #[test]
     fn test_ups() {
