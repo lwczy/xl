@@ -2,9 +2,10 @@
 //! entire file).
 
 use std::collections::HashMap;
+use std::io::BufReader;
 use std::fs;
 use std::fs::File;
-use std::io::BufReader;
+use std::io::{Read, Seek};
 use quick_xml::Reader;
 use quick_xml::events::Event;
 use zip::ZipArchive;
@@ -37,9 +38,9 @@ pub enum DateSystem {
 ///     let mut wb = Workbook::open("tests/data/Book1.xlsx").unwrap();
 ///
 #[derive(Debug)]
-pub struct Workbook {
+pub struct Workbook<RS> {
     pub path: String,
-    xls: ZipArchive<fs::File>,
+    xls: ZipArchive<RS>,
     encoding: String,
     pub date_system: DateSystem,
     strings: Vec<String>,
@@ -160,7 +161,53 @@ impl SheetMap {
     }
 }
 
-impl Workbook {
+impl Workbook<File>{
+    /// Open an existing workbook (xlsx file). Returns a `Result` in case there is an error opening
+    /// the workbook.
+    ///
+    /// # Example usage:
+    ///
+    ///     use xl::Workbook;
+    ///
+    ///     let mut wb = Workbook::open("tests/data/Book1.xlsx");
+    ///     assert!(wb.is_ok());
+    ///
+    ///     // non-existant file
+    ///     let mut wb = Workbook::open("Non-existant xlsx");
+    ///     assert!(wb.is_err());
+    ///
+    ///     // non-xlsx file
+    ///     let mut wb = Workbook::open("src/main.rs");
+    ///     assert!(wb.is_err());
+    pub fn open(path: &str) -> Result<Workbook<File>, String> {
+        if !std::path::Path::new(&path).exists() {
+            let err = format!("'{}' does not exist", &path);
+            return Err(err);
+        }
+        let zip_file = match fs::File::open(&path) {
+            Ok(z) => z,
+            Err(e) => return Err(e.to_string()),
+        };
+        match zip::ZipArchive::new(zip_file) {
+            Ok(mut xls) => {
+                let strings = strings(&mut xls);
+                let styles = find_styles(&mut xls);
+                let date_system = get_date_system(&mut xls);
+                Ok(Workbook {
+                    path: path.to_string(),
+                    xls,
+                    encoding: String::from("utf8"),
+                    date_system,
+                    strings,
+                    styles,
+                })
+            },
+            Err(e) => Err(e.to_string())
+        }
+    }
+}
+
+impl<RS: Read + Seek> Workbook<RS> {
     /// xlsx zips contain an xml file that has a mapping of "ids" to "targets." The ids are used
     /// to uniquely identify sheets within the file. The targets have information on where the
     /// sheets can be found within the zip. This function returns a hashmap of id -> target so that
@@ -285,39 +332,14 @@ impl Workbook {
         }
     }
 
-    /// Open an existing workbook (xlsx file). Returns a `Result` in case there is an error opening
-    /// the workbook.
-    ///
-    /// # Example usage:
-    ///
-    ///     use xl::Workbook;
-    ///
-    ///     let mut wb = Workbook::open("tests/data/Book1.xlsx");
-    ///     assert!(wb.is_ok());
-    ///
-    ///     // non-existant file
-    ///     let mut wb = Workbook::open("Non-existant xlsx");
-    ///     assert!(wb.is_err());
-    ///
-    ///     // non-xlsx file
-    ///     let mut wb = Workbook::open("src/main.rs");
-    ///     assert!(wb.is_err());
-    pub fn new(path: &str) -> Result<Self, String> {
-        if !std::path::Path::new(&path).exists() {
-            let err = format!("'{}' does not exist", &path);
-            return Err(err);
-        }
-        let zip_file = match fs::File::open(&path) {
-            Ok(z) => z,
-            Err(e) => return Err(e.to_string()),
-        };
-        match zip::ZipArchive::new(zip_file) {
+    pub fn new(data: RS) -> Result<Self, String> {
+        match zip::ZipArchive::new(data) {
             Ok(mut xls) => {
                 let strings = strings(&mut xls);
                 let styles = find_styles(&mut xls);
                 let date_system = get_date_system(&mut xls);
                 Ok(Workbook {
-                    path: path.to_string(),
+                    path: String::from("::memory::"),
                     xls,
                     encoding: String::from("utf8"),
                     date_system,
@@ -328,9 +350,6 @@ impl Workbook {
             Err(e) => Err(e.to_string())
         }
     }
-
-    /// Alternative name for `Workbook::new`.
-    pub fn open(path: &str) -> Result<Self, String> { Workbook::new(path) }
 
     /// Simple method to print out all the inner files of the xlsx zip.
     pub fn contents(&mut self) {
@@ -372,7 +391,7 @@ impl Workbook {
 }
 
 
-fn strings(zip_file: &mut ZipArchive<File>) -> Vec<String> {
+fn strings<RS: Read + Seek>(zip_file: &mut ZipArchive<RS>) -> Vec<String> {
     let mut strings = Vec::new();
     match zip_file.by_name("xl/sharedStrings.xml") {
         Ok(strings_file) => {
@@ -420,7 +439,7 @@ fn strings(zip_file: &mut ZipArchive<File>) -> Vec<String> {
 /// find the number of rows and columns used in a particular worksheet. takes the workbook xlsx
 /// location as its first parameter, and the location of the worksheet in question (within the zip)
 /// as the second parameter. Returns a tuple of (rows, columns) in the worksheet.
-fn find_styles(xlsx: &mut ZipArchive<fs::File>) -> Vec<String> {
+fn find_styles<RS: Read + Seek>(xlsx: &mut ZipArchive<RS>) -> Vec<String> {
     let mut styles = Vec::new();
     let mut number_formats = standard_styles();
     let styles_xml = match xlsx.by_name("xl/styles.xml") {
@@ -502,7 +521,7 @@ fn standard_styles() -> HashMap<String, String> {
     styles
 }
 
-fn get_date_system(xlsx: &mut ZipArchive<fs::File>) -> DateSystem {
+fn get_date_system<RS: Read + Seek>(xlsx: &mut ZipArchive<RS>) -> DateSystem {
     match xlsx.by_name("xl/workbook.xml") {
         Ok(wb) => {
             let reader = BufReader::new(wb);

@@ -6,6 +6,7 @@ use std::borrow::Cow;
 use std::cmp;
 use std::fmt;
 use std::io::BufReader;
+use std::io::{Read, Seek};
 use std::mem;
 use std::ops::Index;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
@@ -121,7 +122,7 @@ impl Worksheet {
     ///     let row1 = rows.next().unwrap();
     ///     assert_eq!(row1[0].raw_value, "1");
     ///     assert_eq!(row1[1].value, ExcelValue::Number(2f64));
-    pub fn rows<'a>(&self, workbook: &'a mut Workbook) -> RowIter<'a> {
+    pub fn rows<'a, RS: Read + Seek >(&self, workbook: &'a mut Workbook<RS>) -> RowIter<'a> {
         let reader = workbook.sheet_reader(&self.target);
         RowIter {
             worksheet_reader: reader,
@@ -374,7 +375,6 @@ impl<'a> Iterator for RowIter<'a> {
                                     utils::DateConversion::Time(time) => ExcelValue::Time(time),
                                     utils::DateConversion::Number(num) => ExcelValue::Number(num as f64),
                                 }
-                                
                             },
                             _ => ExcelValue::Number(c.raw_value.parse::<f64>().unwrap()),
                         };
@@ -458,6 +458,7 @@ fn is_date(cell: &Cell) -> bool {
 mod tests {
     use crate::{ExcelValue, Workbook};
     use std::borrow::Cow;
+    use std::fs::File;
 
     #[test]
     fn test_ups() {
