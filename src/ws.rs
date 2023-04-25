@@ -367,15 +367,15 @@ impl<'a> Iterator for RowIter<'a> {
                             },
                             "bl" => ExcelValue::None,
                             "e" => ExcelValue::Error(c.raw_value.to_string()),
-                            _ if is_date(&c) => {
-                                let num = c.raw_value.parse::<f64>().unwrap();
-                                match utils::excel_number_to_date(num, date_system) {
-                                    utils::DateConversion::Date(date) => ExcelValue::Date(date),
-                                    utils::DateConversion::DateTime(date) => ExcelValue::DateTime(date),
-                                    utils::DateConversion::Time(time) => ExcelValue::Time(time),
-                                    utils::DateConversion::Number(num) => ExcelValue::Number(num as f64),
-                                }
-                            },
+                            // _ if is_date(&c) => {
+                            //     let num = c.raw_value.parse::<f64>().unwrap();
+                            //     match utils::excel_number_to_date(num, date_system) {
+                            //         utils::DateConversion::Date(date) => ExcelValue::Date(date),
+                            //         utils::DateConversion::DateTime(date) => ExcelValue::DateTime(date),
+                            //         utils::DateConversion::Time(time) => ExcelValue::Time(time),
+                            //         utils::DateConversion::Number(num) => ExcelValue::Number(num as f64),
+                            //     }
+                            // },
                             _ => ExcelValue::Number(c.raw_value.parse::<f64>().unwrap()),
                         };
                     },
