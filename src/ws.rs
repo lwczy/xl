@@ -174,7 +174,7 @@ pub struct Cell<'a> {
     pub reference: String,
     /// The cell style (e.g., the style you see in Excel by hitting Ctrl+1 and going to the
     /// "Number" tab).
-    pub style: String,
+    pub style: usize,
     /// The type of cell as recorded by Excel (s = string using sharedStrings.xml, str = raw
     /// string, b = boolean, etc.). This may change from a `String` type to an `Enum` of some sorts
     /// in the future.
@@ -246,7 +246,7 @@ fn new_cell() -> Cell<'static> {
         value: ExcelValue::None,
         formula: "".to_string(),
         reference: "".to_string(),
-        style: "".to_string(),
+        style: 0,
         cell_type: "".to_string(),
         raw_value: "".to_string(),
     }
@@ -332,8 +332,8 @@ impl<'a> Iterator for RowIter<'a> {
                                 }
                                 if a.key == b"s" {
                                     if let Ok(num) = utils::attr_value(&a).parse::<usize>() {
-                                        if let Some(style) = styles.get(num) {
-                                            c.style = style.to_string();
+                                        if let Some(_) = styles.get(num) {
+                                            c.style = num;
                                         }
                                     }
                                 }
@@ -443,16 +443,16 @@ impl<'a> Iterator for RowIter<'a> {
     }
 }
 
-fn is_date(cell: &Cell) -> bool {
-    let is_d = cell.style == "d";
-    let is_like_d_and_not_like_red = cell.style.contains('d') && !cell.style.contains("Red");
-    let is_like_m = cell.style.contains('m');
-    if is_d || is_like_d_and_not_like_red || is_like_m {
-        true
-    } else {
-        cell.style.contains('y')
-    }
-}
+// fn is_date(cell: &Cell) -> bool {
+//     let is_d = cell.style == "d";
+//     let is_like_d_and_not_like_red = cell.style.contains('d') && !cell.style.contains("Red");
+//     let is_like_m = cell.style.contains('m');
+//     if is_d || is_like_d_and_not_like_red || is_like_m {
+//         true
+//     } else {
+//         cell.style.contains('y')
+//     }
+// }
 
 #[cfg(test)]
 mod tests {

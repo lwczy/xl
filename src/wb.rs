@@ -44,7 +44,7 @@ pub struct Workbook<RS> {
     encoding: String,
     pub date_system: DateSystem,
     strings: Vec<String>,
-    styles: Vec<String>,
+    pub styles: Vec<String>,
 }
 
 /// A `SheetMap` is an object containing all the sheets in a given workbook. The only way to obtain
