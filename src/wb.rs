@@ -8,6 +8,7 @@ use std::fs::File;
 use std::io::{Read, Seek};
 use quick_xml::Reader;
 use quick_xml::events::Event;
+use quick_xml::escape::unescape;
 use zip::ZipArchive;
 use crate::ws::{SheetReader, Worksheet};
 use crate::utils;
@@ -472,7 +473,7 @@ fn find_styles<RS: Read + Seek>(xlsx: &mut ZipArchive<RS>) -> Vec<String> {
             Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) if record_styles && e.name() == b"xf" => {
                 let id = utils::get(e.attributes(), b"numFmtId").unwrap();
                 if number_formats.contains_key(&id) {
-                    styles.push(number_formats.get(&id).unwrap().to_string());
+                    styles.push(String::from_utf8(unescape(number_formats.get(&id).unwrap().as_bytes()).expect("error").into()).expect("error"));
                 }
             },
             Ok(Event::Eof) => break,
