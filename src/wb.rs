@@ -498,7 +498,7 @@ fn standard_styles() -> HashMap<String, String> {
         ["11", "0.00E+00",],
         ["12", "# ?/?",],
         ["13", "# ??/??",],
-        ["14", "mm-dd-yy",],
+        ["14", "m/d/yy",],
         ["15", "d-mmm-yy",],
         ["16", "d-mmm",],
         ["17", "mmm-yy",],
@@ -516,6 +516,7 @@ fn standard_styles() -> HashMap<String, String> {
         ["47", "mmss.0",],
         ["48", "##0.0E+0",],
         ["49", "@",],
+        ["56", "\"上午/下午 \"hh\"時\"mm\"分\"ss\"秒 \""]
     ];
     for style in standard_styles {
         let [id, code] = style;
